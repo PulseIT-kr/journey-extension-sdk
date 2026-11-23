@@ -15,7 +15,7 @@ my-extension/
 └─ index.html    ← 실행되는 페이지 (js · css · 이미지를 더 넣어도 돼요)
 ```
 
-## 5분 만에 시작하기
+## 시작하기
 
 1. 템플릿 폴더를 복사하고 `widget.json`의 `id`와 `name`을 바꿔요.
 2. Journey에 설치해요.
@@ -58,11 +58,3 @@ Journey에 기본 포함된 확장(D-Day, 환율, GitHub 트렌딩, Lobsters)도
 
 - 할 수 있는 것: 자기 폴더의 파일과 인라인 스크립트 · 스타일, `network`에 적은 https 주소로의 접속, https · `data:` 이미지
 - 할 수 없는 것: Journey의 탭 · 기록 · 비밀번호 · 설정 읽기, 다른 주소 접속, 폼 전송, 페이지 이동, 팝업, `localStorage` · 쿠키
-- 설치할 때 폴더는 20MB 이하만 복사돼요. 심볼릭 링크와 `.`으로 시작하는 파일은 빠져요
-- 라이브 폴더의 `fetch-url`도 `network`에 있는 곳만 받아 주고, 리디렉션도 같은 목록으로 확인해요
-
-## 디버깅
-
-- Journey UI 개발자 도구(`⌥⌘⇧I`) → Console 위쪽에서 확장의 iframe을 고르면 `console.log`가 보여요
-- 화면이 비어 있으면 `entry` 파일 이름과 `widget.json`의 JSON 문법을 확인하세요
-- 메시지 이름은 모두 `journey: '…'` 필드로 구분해요. 오타가 나면 아무 일도 일어나지 않아요
