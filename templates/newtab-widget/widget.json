@@ -1,0 +1,11 @@
+{
+  "id": "me.hello",
+  "name": "안녕 위젯",
+  "description": "위젯 확장 시작 템플릿",
+  "version": "1.0.0",
+  "icon": "lucide:hand",
+  "entry": "index.html",
+  "size": { "cols": 4, "rows": 3 },
+  "network": [],
+  "settings": [{ "key": "name", "label": "이름", "type": "text", "default": "Journey" }]
+}

@@ -1,0 +1,11 @@
+{
+  "id": "my-live-source",
+  "type": "live",
+  "name": "내 라이브 폴더",
+  "description": "무엇을 가져오는지 한 줄로",
+  "version": "1.0.0",
+  "icon": "ph:lightning",
+  "network": ["https://lobste.rs"],
+  "settings": [{ "key": "list", "label": "목록", "type": "select", "options": ["hottest", "newest"] }],
+  "filters": { "limit": 15 }
+}

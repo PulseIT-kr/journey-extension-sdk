@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<style>
+  :root { --text: #222; --muted: #888; --accent: #7c5cff; }
+  html, body { margin: 0; height: 100%; background: transparent; color: var(--text);
+    font: 13px -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif; }
+  .wrap { height: 100%; box-sizing: border-box; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .name { font-weight: 600; font-size: 14px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .name:hover { color: var(--accent); }
+  .desc { color: var(--muted); line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .stats { display: flex; gap: 14px; margin-top: auto; font-variant-numeric: tabular-nums; }
+  .stats b { font-size: 16px; display: block; }
+  .stats span { color: var(--muted); font-size: 11.5px; }
+  .release { color: var(--accent); cursor: pointer; font-size: 12px; }
+  .msg { margin: auto; color: var(--muted); text-align: center; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="wrap" id="root"><div class="msg">불러오는 중…</div></div>
+<script>
+  const root = document.getElementById('root')
+  let repo = ''
+  let loadedFor = ''
+
+  // https 주소만 Journey가 새 탭으로 열어 줘요
+  const open = (url) => parent.postMessage({ journey: 'open', url }, '*')
+  const fmt = (n) => (n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'k' : String(n))
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+
+  async function load() {
+    if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) {
+      root.innerHTML = '<div class="msg">위젯 메뉴(⋯)에서<br>저장소를 owner/name으로 적어 주세요</div>'
+      return
+    }
+    loadedFor = repo
+    root.innerHTML = '<div class="msg">불러오는 중…</div>'
+    try {
+      // network에 https://api.github.com이 있어서 직접 fetch할 수 있어요 (GitHub API는 CORS를 허용해요)
+      const r = await fetch(`https://api.github.com/repos/${repo}`)
+      if (r.status === 404) throw new Error('저장소를 찾지 못했어요')
+      if (r.status === 403) throw new Error('GitHub 요청 한도에 걸렸어요. 잠시 뒤 다시 열어 주세요')
+      const d = await r.json()
+      const rel = await fetch(`https://api.github.com/repos/${repo}/releases/latest`).then((x) => (x.ok ? x.json() : null), () => null)
+      root.innerHTML = `
+        <div class="name" id="name">${esc(d.full_name)}</div>
+        <div class="desc">${esc(d.description || '설명 없음')}</div>
+        ${rel ? `<div class="release" id="rel">최근 릴리스 ${esc(rel.tag_name)}</div>` : ''}
+        <div class="stats">
+          <div><b>${fmt(d.stargazers_count)}</b><span>별</span></div>
+          <div><b>${fmt(d.forks_count)}</b><span>포크</span></div>
+          <div><b>${fmt(d.open_issues_count)}</b><span>열린 이슈</span></div>
+        </div>`
+      document.getElementById('name').onclick = () => open(d.html_url)
+      if (rel) document.getElementById('rel').onclick = () => open(rel.html_url)
+    } catch (err) {
+      root.innerHTML = `<div class="msg">${esc(err.message || err)}</div>`
+    }
+  }
+
+  addEventListener('message', (e) => {
+    const m = e.data
+    if (!m || m.journey !== 'init') return
+    for (const [k, v] of Object.entries(m.theme || {})) document.documentElement.style.setProperty('--' + k, v)
+    repo = (m.settings?.repo || '').trim()
+    // init은 테마만 바뀔 때도 와요: 저장소가 바뀌었을 때만 다시 받아요
+    if (repo !== loadedFor) load()
+  })
+
+  parent.postMessage({ journey: 'ready' }, '*')
+</script>
+</body>
+</html>

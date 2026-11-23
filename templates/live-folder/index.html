@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8" />
+<script>
+  let n = 0
+  const waiting = {}
+  const fetchJSON = (url) =>
+    new Promise((resolve, reject) => {
+      const id = ++n
+      waiting[id] = { resolve, reject }
+      parent.postMessage({ journey: 'fetch-url', id, url }, '*')
+    }).then((body) => JSON.parse(body))
+  addEventListener('message', async (e) => {
+    const d = e.data || {}
+    if (d.journey === 'fetch-result') {
+      const w = waiting[d.id]
+      delete waiting[d.id]
+      if (w) d.error ? w.reject(new Error(d.error)) : w.resolve(d.body)
+    }
+    if (d.journey !== 'fetch') return
+    try {
+      const list = d.settings?.list === 'newest' ? 'newest' : 'hottest'
+      // d.filter: 사용자가 정한 개수·기간·키워드 (힌트예요. Journey가 받은 뒤 다시 걸러요)
+      // 필터 때문에 줄어들 수 있으니 limit보다 넉넉히 보내 주세요
+      const want = Math.min(50, (d.filter?.limit ?? 25) * 2)
+      const rows = await fetchJSON(`https://lobste.rs/${list}.json`)
+      const items = rows.slice(0, want).map((r) => ({
+        id: r.short_id,
+        url: r.url || r.comments_url,
+        title: r.title,
+        subtitle: `▲ ${r.score} · 댓글 ${r.comment_count}${r.tags?.length ? ' · ' + r.tags.join(', ') : ''}`,
+        date: r.created_at
+      }))
+      parent.postMessage({ journey: 'entries', items }, '*')
+    } catch (err) {
+      parent.postMessage({ journey: 'error', message: String(err.message || err) }, '*')
+    }
+  })
+  parent.postMessage({ journey: 'ready' }, '*')
+</script>

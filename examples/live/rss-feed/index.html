@@ -1,0 +1,69 @@
+<!doctype html>
+<meta charset="utf-8" />
+<script>
+  // 다른 피드로 바꾸려면: FEEDS의 주소와 widget.json의 network(origin)를 함께 바꾸세요
+  const FEEDS = {
+    main: 'https://blog.rust-lang.org/feed.xml',
+    'inside-rust': 'https://blog.rust-lang.org/inside-rust/feed.xml'
+  }
+
+  let next = 0
+  const waiting = {}
+  const fetchText = (url) =>
+    new Promise((resolve, reject) => {
+      const id = ++next
+      waiting[id] = { resolve, reject }
+      parent.postMessage({ journey: 'fetch-url', id, url }, '*')
+    })
+
+  const text = (el, sel) => (el.querySelector(sel)?.textContent || '').trim()
+
+  /** RSS 2.0 <item>과 Atom <entry>를 같은 모양으로 */
+  function parseFeed(xmlText) {
+    const xml = new DOMParser().parseFromString(xmlText, 'application/xml')
+    if (xml.querySelector('parsererror')) throw new Error('피드를 읽지 못했어요 (XML이 아니에요)')
+    const rss = [...xml.querySelectorAll('item')].map((it) => ({
+      url: text(it, 'link'),
+      title: text(it, 'title'),
+      date: text(it, 'pubDate'),
+      id: text(it, 'guid') || text(it, 'link'),
+      author: text(it, 'author') || text(it, 'creator')
+    }))
+    const atom = [...xml.querySelectorAll('entry')].map((it) => ({
+      url: it.querySelector('link[rel="alternate"]')?.getAttribute('href') || it.querySelector('link')?.getAttribute('href') || '',
+      title: text(it, 'title'),
+      date: text(it, 'published') || text(it, 'updated'),
+      id: text(it, 'id'),
+      author: text(it, 'author > name')
+    }))
+    return [...rss, ...atom]
+  }
+
+  addEventListener('message', async (e) => {
+    const d = e.data || {}
+    if (d.journey === 'fetch-result') {
+      const w = waiting[d.id]
+      delete waiting[d.id]
+      if (!w) return
+      if (d.error) w.reject(new Error(d.error))
+      else if (d.status >= 400) w.reject(new Error(`피드가 ${d.status}로 답했어요`))
+      else w.resolve(d.body)
+      return
+    }
+    if (d.journey !== 'fetch') return
+    try {
+      const url = FEEDS[d.settings?.feed] || FEEDS.main
+      const items = parseFeed(await fetchText(url))
+        .filter((x) => /^https?:\/\//.test(x.url))
+        // 최신순으로 (피드가 오래된 순일 수도 있어요)
+        .sort((a, b) => (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0))
+        .slice(0, 50)
+        .map((x) => ({ id: x.id || x.url, url: x.url, title: x.title || x.url, subtitle: x.author || undefined, date: x.date || undefined }))
+      parent.postMessage({ journey: 'entries', items }, '*')
+    } catch (err) {
+      parent.postMessage({ journey: 'error', message: String(err.message || err) }, '*')
+    }
+  })
+
+  parent.postMessage({ journey: 'ready' }, '*')
+</script>

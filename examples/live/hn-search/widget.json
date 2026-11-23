@@ -1,0 +1,15 @@
+{
+  "id": "example.hn-search",
+  "type": "live",
+  "name": "Hacker News 검색",
+  "description": "단어가 들어간 Hacker News 새 글 (SDK 예제)",
+  "version": "1.0.0",
+  "icon": "lucide:search",
+  "network": ["https://hn.algolia.com"],
+  "settings": [
+    { "key": "query", "label": "찾을 단어", "type": "text", "placeholder": "electron" },
+    { "key": "kind", "label": "종류", "type": "select", "options": ["story", "show_hn", "ask_hn"] },
+    { "key": "points", "label": "최소 점수", "type": "number", "default": "10" }
+  ],
+  "filters": { "limit": 15, "maxAgeDays": 14 }
+}

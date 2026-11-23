@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<style>
+  /* Journey가 init으로 보내 주는 색으로 바뀌어요. 아래 값은 브라우저에서 바로 열어 볼 때만 쓰여요 */
+  :root { --text: #222; --muted: #888; --accent: #7c5cff; }
+  html, body { margin: 0; height: 100%; background: transparent; color: var(--text);
+    font: 13px -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif; }
+  /* 크기는 사용자가 바꿔요: 고정 px 대신 container 단위로 글자 크기를 맞춰요 */
+  body { container-type: size; }
+  .wrap { height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; text-align: center; }
+  .city { color: var(--muted); font-size: clamp(11px, 7cqmin, 15px); }
+  .time { font-size: clamp(22px, 26cqmin, 64px); font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1.05; }
+  .diff { color: var(--accent); font-size: clamp(11px, 6cqmin, 14px); }
+  /* 아주 낮은 카드(1칸)에서는 한 줄로 */
+  @container (max-height: 70px) {
+    .wrap { flex-direction: row; gap: 8px; }
+    .diff { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="city" id="city">…</div>
+  <div class="time" id="time">--:--</div>
+  <div class="diff" id="diff"></div>
+</div>
+<script>
+  let settings = { zone: 'America/New_York', label: '' }
+
+  const cityName = (zone) => zone.split('/').pop().replace(/_/g, ' ')
+
+  function render() {
+    const zone = settings.zone || 'America/New_York'
+    const now = new Date()
+    let time
+    try {
+      time = now.toLocaleTimeString('ko-KR', { timeZone: zone, hour: '2-digit', minute: '2-digit' })
+    } catch {
+      time = '알 수 없는 도시'
+    }
+    // 여기와의 시차 (시간 단위)
+    const there = new Date(now.toLocaleString('en-US', { timeZone: zone }))
+    const hours = Math.round((there - now) / 3600000)
+    document.getElementById('city').textContent = settings.label || cityName(zone)
+    document.getElementById('time').textContent = time
+    document.getElementById('diff').textContent = hours === 0 ? '여기와 같은 시각' : hours > 0 ? `여기보다 ${hours}시간 빠름` : `여기보다 ${-hours}시간 느림`
+  }
+
+  // Journey → 위젯: 처음, 그리고 설정을 바꿀 때마다
+  addEventListener('message', (e) => {
+    const m = e.data
+    if (!m || m.journey !== 'init') return
+    for (const [k, v] of Object.entries(m.theme || {})) document.documentElement.style.setProperty('--' + k, v)
+    settings = { ...settings, ...(m.settings || {}) }
+    render()
+  })
+
+  // 분이 바뀔 때만 다시 그려요 (매초 그리면 배터리를 써요)
+  const tick = () => {
+    render()
+    setTimeout(tick, 60000 - (Date.now() % 60000) + 50)
+  }
+  tick()
+
+  parent.postMessage({ journey: 'ready' }, '*')
+</script>
+</body>
+</html>

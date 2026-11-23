@@ -1,0 +1,64 @@
+<!doctype html>
+<meta charset="utf-8" />
+<script>
+  // ---- fetch-url: Journey가 대신 받아 주는 요청 (network에 있는 https origin만) ----
+  let next = 0
+  const waiting = {}
+  const fetchText = (url) =>
+    new Promise((resolve, reject) => {
+      const id = ++next
+      waiting[id] = { resolve, reject }
+      parent.postMessage({ journey: 'fetch-url', id, url }, '*')
+    })
+  const fetchJSON = (url) => fetchText(url).then((body) => JSON.parse(body))
+
+  addEventListener('message', async (e) => {
+    const d = e.data || {}
+
+    // Journey → 출처: fetch-url의 답
+    if (d.journey === 'fetch-result') {
+      const w = waiting[d.id]
+      delete waiting[d.id]
+      if (!w) return
+      if (d.error) w.reject(new Error(d.error))
+      else if (d.status >= 400) w.reject(new Error(`HN 검색이 ${d.status}로 답했어요`))
+      else w.resolve(d.body)
+      return
+    }
+
+    // Journey → 출처: 항목을 가져와 주세요
+    if (d.journey !== 'fetch') return
+    try {
+      const s = d.settings || {}
+      const filter = d.filter || {}
+      const query = (s.query || '').trim()
+      if (!query) throw new Error('찾을 단어를 적어 주세요')
+      const tags = ['story', 'show_hn', 'ask_hn'].includes(s.kind) ? s.kind : 'story'
+      const points = Math.max(0, Number(s.points) || 0)
+
+      // filter는 힌트예요: API가 받는 조건은 넘겨서 덜 받고, 키워드 필터를 생각해 limit보다 넉넉히 받아요
+      const want = Math.min(50, (filter.limit || 25) * 2)
+      const params = new URLSearchParams({ query, tags, hitsPerPage: String(want) })
+      const numeric = []
+      if (points) numeric.push(`points>=${points}`)
+      if (filter.maxAgeDays) numeric.push(`created_at_i>=${Math.floor(Date.now() / 1000) - filter.maxAgeDays * 86400}`)
+      if (numeric.length) params.set('numericFilters', numeric.join(','))
+
+      // search_by_date: 최신순으로 와요 (라이브 폴더는 최신순을 기대해요)
+      const res = await fetchJSON(`https://hn.algolia.com/api/v1/search_by_date?${params}`)
+      const items = (res.hits || []).map((h) => ({
+        id: h.objectID, // 바뀌지 않는 값: 읽음 표시가 유지돼요
+        url: h.url || `https://news.ycombinator.com/item?id=${h.objectID}`,
+        title: h.title || h.story_title || '(제목 없음)',
+        subtitle: `▲ ${h.points ?? 0} · 댓글 ${h.num_comments ?? 0} · ${h.author}`,
+        date: h.created_at // 기간 필터에 쓰여요
+      }))
+      parent.postMessage({ journey: 'entries', items }, '*')
+    } catch (err) {
+      // 오류도 꼭 알려 주세요: 안 그러면 30초 뒤에 "답하지 않았어요"로 끝나요
+      parent.postMessage({ journey: 'error', message: String(err.message || err) }, '*')
+    }
+  })
+
+  parent.postMessage({ journey: 'ready' }, '*')
+</script>

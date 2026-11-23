@@ -1,0 +1,11 @@
+{
+  "id": "example.rust-blog",
+  "type": "live",
+  "name": "Rust 블로그",
+  "description": "RSS/Atom 피드 읽기 예제 (SDK 예제)",
+  "version": "1.0.0",
+  "icon": "lucide:rss",
+  "network": ["https://blog.rust-lang.org"],
+  "settings": [{ "key": "feed", "label": "피드", "type": "select", "options": ["main", "inside-rust"] }],
+  "filters": { "limit": 10 }
+}

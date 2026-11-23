@@ -1,0 +1,19 @@
+{
+  "id": "example.world-clock",
+  "name": "세계 시계",
+  "description": "다른 도시의 지금 시각 (SDK 예제)",
+  "version": "1.0.0",
+  "icon": "lucide:globe-2",
+  "size": { "cols": 4, "rows": 3 },
+  "network": [],
+  "settings": [
+    {
+      "key": "zone",
+      "label": "도시",
+      "type": "select",
+      "default": "America/New_York",
+      "options": ["America/New_York", "America/Los_Angeles", "Europe/London", "Europe/Paris", "Asia/Tokyo", "Asia/Singapore", "Australia/Sydney"]
+    },
+    { "key": "label", "label": "표시 이름 (비우면 도시 이름)", "type": "text", "placeholder": "뉴욕 사무실" }
+  ]
+}

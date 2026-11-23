@@ -1,0 +1,10 @@
+{
+  "id": "example.github-repo",
+  "name": "GitHub 저장소",
+  "description": "저장소의 별 · 이슈 · 최근 릴리스 (SDK 예제)",
+  "version": "1.0.0",
+  "icon": "lucide:github",
+  "size": { "cols": 4, "rows": 3 },
+  "network": ["https://api.github.com"],
+  "settings": [{ "key": "repo", "label": "저장소 (owner/name)", "type": "text", "default": "electron/electron", "placeholder": "electron/electron" }]
+}
